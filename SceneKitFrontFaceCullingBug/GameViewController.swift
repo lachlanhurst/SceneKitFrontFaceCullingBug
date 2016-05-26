@@ -9,95 +9,60 @@
 import UIKit
 import QuartzCore
 import SceneKit
+import SpriteKit
 
 class GameViewController: UIViewController {
 
+    var box:SCNGeometry!
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // create and add a camera to the scene
+
+        let scene = SCNScene()
+
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         scene.rootNode.addChildNode(cameraNode)
-        
-        // place the camera
         cameraNode.position = SCNVector3(x: 0, y: 0, z: 15)
+
         
-        // create and add a light to the scene
-        let lightNode = SCNNode()
-        lightNode.light = SCNLight()
-        lightNode.light!.type = SCNLightTypeOmni
-        lightNode.position = SCNVector3(x: 0, y: 10, z: 10)
-        scene.rootNode.addChildNode(lightNode)
-        
-        // create and add an ambient light to the scene
-        let ambientLightNode = SCNNode()
-        ambientLightNode.light = SCNLight()
-        ambientLightNode.light!.type = SCNLightTypeAmbient
-        ambientLightNode.light!.color = UIColor.darkGrayColor()
-        scene.rootNode.addChildNode(ambientLightNode)
-        
-        // retrieve the ship node
-        let ship = scene.rootNode.childNodeWithName("ship", recursively: true)!
-        
-        // animate the 3d object
-        ship.runAction(SCNAction.repeatActionForever(SCNAction.rotateByX(0, y: 2, z: 0, duration: 1)))
-        
-        // retrieve the SCNView
+
+        let box = SCNBox(width: 1, height: 2, length: 3, chamferRadius: 0.2)
+        box.firstMaterial!.cullMode = .Front
+        let boxNode = SCNNode(geometry: box)
+        boxNode.runAction(SCNAction.repeatActionForever(SCNAction.rotateByX(0, y: 2, z: 0, duration: 1)))
+        scene.rootNode.addChildNode(boxNode)
+        self.box = box
+
         let scnView = self.view as! SCNView
-        
-        // set the scene to the view
         scnView.scene = scene
-        
-        // allows the user to manipulate the camera
         scnView.allowsCameraControl = true
-        
-        // show statistics such as fps and timing information
-        scnView.showsStatistics = true
-        
-        // configure the view
-        scnView.backgroundColor = UIColor.blackColor()
-        
-        // add a tap gesture recognizer
+        scnView.backgroundColor = UIColor.lightGrayColor()
+        scnView.autoenablesDefaultLighting = true
+
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
+
+
+
+        let overlayNode = SKShapeNode(rect: CGRectMake(10,10,200,200), cornerRadius: 4)
+        overlayNode.position = CGPointMake(10, 10)
+        overlayNode.fillColor = UIColor.redColor()
+        overlayNode.strokeColor = UIColor.greenColor()
+        overlayNode.lineWidth = 3.0
+
+        let overlayScene = SKScene(size: self.view.frame.size)
+        overlayScene.addChild(overlayNode)
+
+        scnView.overlaySKScene = overlayScene
+
     }
     
     func handleTap(gestureRecognize: UIGestureRecognizer) {
-        // retrieve the SCNView
-        let scnView = self.view as! SCNView
-        
-        // check what nodes are tapped
-        let p = gestureRecognize.locationInView(scnView)
-        let hitResults = scnView.hitTest(p, options: nil)
-        // check that we clicked on at least one object
-        if hitResults.count > 0 {
-            // retrieved the first clicked object
-            let result: AnyObject! = hitResults[0]
-            
-            // get its material
-            let material = result.node!.geometry!.firstMaterial!
-            
-            // highlight it
-            SCNTransaction.begin()
-            SCNTransaction.setAnimationDuration(0.5)
-            
-            // on completion - unhighlight
-            SCNTransaction.setCompletionBlock {
-                SCNTransaction.begin()
-                SCNTransaction.setAnimationDuration(0.5)
-                
-                material.emission.contents = UIColor.blackColor()
-                
-                SCNTransaction.commit()
-            }
-            
-            material.emission.contents = UIColor.redColor()
-            
-            SCNTransaction.commit()
+        if  box.firstMaterial!.cullMode == .Front {
+            box.firstMaterial!.cullMode = .Back
+        } else {
+            box.firstMaterial!.cullMode = .Front
         }
     }
     
